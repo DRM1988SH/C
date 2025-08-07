@@ -1551,6 +1551,35 @@
                 document.getElementById('export-finance-pdf').addEventListener('click', () => this.exportPDF('finance'));
                 document.getElementById('filter-report-btn').addEventListener('click', () => this.filterReport());
                 document.getElementById('filter-finance-btn').addEventListener('click', () => this.filterFinanceReport());
+                
+                // أحداث تعديل وحذف العناصر
+                this.setupEditDeleteEvents();
+            }
+            
+            setupEditDeleteEvents() {
+                // إعداد أحداث التعديل والحذف للمستخدمين
+                document.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('fa-edit')) {
+                        const listItem = e.target.closest('.list-item');
+                        this.editItem(listItem);
+                    } else if (e.target.classList.contains('fa-trash')) {
+                        const listItem = e.target.closest('.list-item');
+                        this.deleteItem(listItem);
+                    }
+                });
+            }
+            
+            editItem(listItem) {
+                // يمكنك تطبيق منطق التعديل هنا
+                alert('سيتم تطبيق التعديل هنا');
+            }
+            
+            deleteItem(listItem) {
+                if (confirm('هل أنت متأكد من حذف هذا العنصر؟')) {
+                    // يمكنك تطبيق منطق الحذف هنا
+                    listItem.remove();
+                    alert('تم حذف العنصر بنجاح');
+                }
             }
             
             login() {
