@@ -1,0 +1,1978 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الذبائح وسجلات المتعاملين</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #8B4513;
+            --secondary: #A0522D;
+            --accent: #D2691E;
+            --light: #F5DEB3;
+            --dark: #5D4037;
+            --text: #333;
+            --text-light: #fff;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --danger: #F44336;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f2eb, #e8e1d1);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* شاشات التطبيق */
+        .screen {
+            display: none;
+            min-height: calc(100vh - 40px);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        /* شاشة الترحيب */
+        #welcome-screen {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .welcome-content {
+            text-align: center;
+            animation: pulse 2s infinite;
+            padding: 20px;
+        }
+        
+        .welcome-content img {
+            max-width: 300px;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 5px solid var(--light);
+        }
+        
+        /* شاشة تسجيل الدخول */
+        #login-screen {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            animation: slideUp 0.5s ease;
+        }
+        
+        .login-container h2 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            position: relative;
+        }
+        
+        .login-container h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: var(--accent);
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.2);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn i {
+            margin-left: 8px;
+        }
+        
+        /* شاشة لوحة التحكم */
+        .dashboard-header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dashboard-header h1 i {
+            font-size: 28px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 15px;
+            border-radius: 30px;
+        }
+        
+        .user-info i {
+            font-size: 20px;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: var(--primary);
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            border-color: var(--accent);
+        }
+        
+        .dashboard-card i {
+            font-size: 50px;
+            color: var(--primary);
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .dashboard-card:hover i {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+        
+        .dashboard-card h3 {
+            color: var(--primary);
+            font-size: 20px;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+        
+        .dashboard-card:hover h3 {
+            color: var(--secondary);
+        }
+        
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: var(--text);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        /* شاشة إدخال البيانات */
+        .screen-header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px 25px;
+            border-radius: 0 0 15px 15px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .screen-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header-info span {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+            border: 1px solid #eee;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            flex: 1 1 300px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+            position: relative;
+            padding-right: 10px;
+        }
+        
+        .form-group label::after {
+            content: '*';
+            color: var(--danger);
+            margin-right: 5px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.2);
+            background: #fff;
+        }
+        
+        .radio-group, .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 2px solid #eee;
+        }
+        
+        .radio-option, .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn-sm {
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        
+        /* شاشات التقارير */
+        .report-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+            border: 1px solid #eee;
+        }
+        
+        .date-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .date-filter .form-group {
+            flex: 1 1 200px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            min-width: 800px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .summary-row {
+            font-weight: bold;
+            background-color: var(--light);
+        }
+        
+        /* شاشة الإعدادات */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .settings-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eee;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .settings-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: var(--primary);
+        }
+        
+        .settings-card h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light);
+        }
+        
+        .user-list, .location-list, .animal-list, .cut-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .list-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .list-item:hover {
+            background: #f9f9f9;
+        }
+        
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .list-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .list-actions i {
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+            transition: color 0.3s;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        .list-actions i:hover {
+            color: var(--primary);
+            background: rgba(139, 69, 19, 0.1);
+        }
+        
+        /* الفاتورة والاستيكر */
+        .invoice-container, .sticker-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 20px auto;
+            display: none;
+            border: 1px solid #ddd;
+        }
+        
+        .invoice-header, .sticker-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        .invoice-header h2, .sticker-header h2 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .invoice-details, .sticker-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            border: 1px solid #ddd;
+        }
+        
+        .invoice-table th, .invoice-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        
+        .invoice-table th {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .invoice-footer, .sticker-footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px dashed #ddd;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .sticker-content {
+            border: 3px solid var(--primary);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            background: #fff;
+        }
+        
+        .sticker-content table {
+            width: 100%;
+            margin: 20px 0;
+            border: 2px solid var(--dark);
+        }
+        
+        .sticker-content th, .sticker-content td {
+            padding: 10px;
+            border: 2px solid var(--dark);
+            font-weight: bold;
+        }
+        
+        .sticker-content th {
+            background-color: var(--light);
+        }
+        
+        /* الرسوم المتحركة */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* التكيف مع الأجهزة المحمولة */
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 25px;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .invoice-container, .sticker-container {
+                padding: 20px;
+            }
+            
+            .screen-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .header-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- شاشة الترحيب -->
+        <div id="welcome-screen" class="screen active">
+            <div class="welcome-content">
+                <img src="https://cdn.pixabay.com/photo/2017/09/28/20/11/sheep-2796385_960_720.png" alt="صورة خروف">
+            </div>
+        </div>
+
+        <!-- شاشة تسجيل الدخول -->
+        <div id="login-screen" class="screen">
+            <div class="login-container">
+                <h2>تسجيل الدخول</h2>
+                <div class="form-group">
+                    <label for="employee-id">الرقم الوظيفي</label>
+                    <input type="text" id="employee-id" placeholder="أدخل الرقم الوظيفي" value="70062">
+                </div>
+                <div class="form-group">
+                    <label for="employee-name">اسم المستخدم</label>
+                    <input type="text" id="employee-name" placeholder="أدخل اسم المستخدم" value="Musab Ali">
+                </div>
+                <button id="login-btn" class="btn">تسجيل الدخول</button>
+            </div>
+        </div>
+
+        <!-- شاشة لوحة التحكم -->
+        <div id="dashboard-screen" class="screen">
+            <div class="dashboard-header">
+                <h1><i class="fas fa-tachometer-alt"></i> لوحة تحكم نظام الذبائح</h1>
+                <div class="user-info">
+                    <i class="fas fa-user"></i>
+                    <span>مسيب علي - مدير النظام</span>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card" data-screen="data-entry-screen">
+                    <i class="fas fa-database"></i>
+                    <h3>ادخال البيانات</h3>
+                </div>
+                <div class="dashboard-card" data-screen="customer-report-screen">
+                    <i class="fas fa-users"></i>
+                    <h3>تقرير المتعاملين</h3>
+                </div>
+                <div class="dashboard-card" data-screen="financial-report-screen">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>التقرير المالي</h3>
+                </div>
+                <div class="dashboard-card" data-screen="settings-screen">
+                    <i class="fas fa-cog"></i>
+                    <h3>إعدادات النظام</h3>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <button id="logout-btn" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                </button>
+            </div>
+        </div>
+
+        <!-- شاشة إدخال البيانات -->
+        <div id="data-entry-screen" class="screen">
+            <div class="screen-header">
+                <h2><i class="fas fa-database"></i> نظام إدارة الذبائح وسجلات المتعاملين</h2>
+                <div class="header-info">
+                    <span><i class="fas fa-calendar"></i> <span id="current-date"></span></span>
+                    <span><i class="fas fa-clock"></i> <span id="current-time"></span></span>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="location">الموقع</label>
+                        <select id="location">
+                            <option value="">اختر الموقع</option>
+                            <option value="zaid">مسلخ مدينة زايد</option>
+                            <option value="liwa">مسلخ مدينة ليوا</option>
+                            <option value="marfa">مسلخ مدينة المرفأ</option>
+                            <option value="ghayathi" selected>مسلخ مدينة غياثي</option>
+                            <option value="sila">مسلخ مدينة السلع</option>
+                            <option value="dalma">مسلخ مدينة دلما</option>
+                            <option value="mobile1">المسلخ المتنقل 1</option>
+                            <option value="mobile2">المسلخ المتنقل 2</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone">رقم التلفون</label>
+                        <input type="tel" id="phone" placeholder="أدخل رقم التلفون">
+                    </div>
+                    <div class="form-group">
+                        <label for="customer-name">اسم المتعامل</label>
+                        <input type="text" id="customer-name" placeholder="اسم المتعامل">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="invoice-number">رقم الفاتورة</label>
+                        <input type="text" id="invoice-number" readonly value="GHSH-00001">
+                    </div>
+                    <div class="form-group">
+                        <label for="sticker-number">رقم الاستيكر</label>
+                        <select id="sticker-number">
+                            <!-- سيتم تعبئته بالجافاسكريبت -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="animal-number">رقم الذبيحة</label>
+                        <select id="animal-number">
+                            <!-- سيتم تعبئته بالجافاسكريبت -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="animal-type">نوع الذبيحة</label>
+                        <select id="animal-type">
+                            <option value="">اختر نوع الذبيحة</option>
+                            <option value="sheep" selected>خروف</option>
+                            <option value="goat">ماعز</option>
+                            <option value="calf">عجل صغير</option>
+                            <option value="cow">بقر كبير</option>
+                            <option value="young-camel">حوار صغير</option>
+                            <option value="camel">جمل كبير</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="cut-type">نوع التقطيع</label>
+                        <select id="cut-type">
+                            <option value="">اختر نوع التقطيع</option>
+                            <option value="full" selected>كامل</option>
+                            <option value="fridge">ثلاجة</option>
+                            <option value="party">عزيمة</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="quantity">عدد الذبائح</label>
+                        <input type="number" id="quantity" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="price">السعر (درهم)</label>
+                        <input type="number" id="price" min="0" step="0.01" value="250">
+                    </div>
+                    <div class="form-group">
+                        <label for="total">الإجمالي (درهم)</label>
+                        <input type="text" id="total" readonly value="250">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>طريقة الدفع</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="payment" value="cash" checked> كاش
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="payment" value="card"> بطاقة
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>الملحقات</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="extras" value="tripe"> كرش مصران
+                            </label>
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="extras" value="legs"> كوارع
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button id="add-animal-btn" class="btn btn-success">
+                        <i class="fas fa-plus"></i> إضافة ذبيحة
+                    </button>
+                    <button id="print-invoice-btn" class="btn btn-warning">
+                        <i class="fas fa-print"></i> طباعة فاتورة
+                    </button>
+                    <button id="print-sticker-btn" class="btn btn-warning">
+                        <i class="fas fa-tag"></i> طباعة بطاقة غذائية
+                    </button>
+                    <button id="customer-report-btn" class="btn">
+                        <i class="fas fa-users"></i> تقرير المتعاملين
+                    </button>
+                    <button id="back-to-dashboard" class="btn btn-secondary">
+                        <i class="fas fa-home"></i> العودة للرئيسية
+                    </button>
+                </div>
+            </div>
+
+            <!-- نموذج الفاتورة (مخفي للطباعة) -->
+            <div id="invoice-template" class="invoice-container">
+                <div class="invoice-header">
+                    <h2>مسالخ منطقة الظفرة</h2>
+                    <h3 id="invoice-location">مسلخ مدينة غياثي</h3>
+                    <p>فاتورة ذبيح</p>
+                    <p id="invoice-date">التاريخ: 01 يناير 2023</p>
+                </div>
+                
+                <table class="invoice-table">
+                    <tr>
+                        <th>البند</th>
+                        <th>القيمة</th>
+                    </tr>
+                    <tr>
+                        <td>رقم الفاتورة</td>
+                        <td id="inv-number">GHSH-00001</td>
+                    </tr>
+                    <tr>
+                        <td>رقم الذبيحة</td>
+                        <td id="inv-animal">1</td>
+                    </tr>
+                    <tr>
+                        <td>رقم الاستيكر</td>
+                        <td id="inv-sticker">1</td>
+                    </tr>
+                    <tr>
+                        <td>نوع الذبيحة</td>
+                        <td id="inv-type">خروف</td>
+                    </tr>
+                    <tr>
+                        <td>نوع التقطيع</td>
+                        <td id="inv-cut">كامل</td>
+                    </tr>
+                    <tr>
+                        <td>العدد</td>
+                        <td id="inv-quantity">1</td>
+                    </tr>
+                    <tr>
+                        <td>السعر (درهم)</td>
+                        <td id="inv-price">250</td>
+                    </tr>
+                    <tr>
+                        <td>الإجمالي (درهم)</td>
+                        <td id="inv-total">250</td>
+                    </tr>
+                </table>
+                
+                <div class="invoice-footer">
+                    تمت طباعة الفاتورة بواسطة المستخدم: مسيب علي
+                </div>
+            </div>
+
+            <!-- نموذج الاستيكر (مخفي للطباعة) -->
+            <div id="sticker-template" class="sticker-container">
+                <div class="sticker-header">
+                    <h2 id="sticker-location">مسلخ مدينة غياثي</h2>
+                </div>
+                
+                <div class="sticker-content">
+                    <table>
+                        <tr>
+                            <th>نوع الذبيحة</th>
+                            <th>نوع التقطيع</th>
+                            <th>تاريخ الإنتاج</th>
+                            <th>تاريخ الانتهاء</th>
+                        </tr>
+                        <tr>
+                            <td id="sticker-type">خروف</td>
+                            <td id="sticker-cut">كامل</td>
+                            <td id="sticker-prod">01/01/2023</td>
+                            <td id="sticker-exp">15/01/2023</td>
+                        </tr>
+                    </table>
+                    
+                    <p><strong>ملاحظة:</strong> في حالة وجود أي ملاحظة يرجى مراجعة المسلخ</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- شاشة تقرير المتعاملين -->
+        <div id="customer-report-screen" class="screen">
+            <div class="screen-header">
+                <h2><i class="fas fa-users"></i> تقرير المتعاملين</h2>
+                <button id="back-to-dashboard2" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> العودة
+                </button>
+            </div>
+
+            <div class="report-container">
+                <div class="date-filter">
+                    <div class="form-group">
+                        <label for="report-start-date">من تاريخ</label>
+                        <input type="date" id="report-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="report-end-date">إلى تاريخ</label>
+                        <input type="date" id="report-end-date">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button id="filter-report-btn" class="btn">تصفية التقرير</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>رقم التلفون</th>
+                                <th>اسم المتعامل</th>
+                                <th>رقم الفاتورة</th>
+                                <th>نوع الذبيحة</th>
+                                <th>نوع التقطيع</th>
+                                <th>العدد</th>
+                                <th>الإجمالي (درهم)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-report-body">
+                            <tr>
+                                <td>01/01/2023</td>
+                                <td>0551234567</td>
+                                <td>محمد أحمد</td>
+                                <td>GHSH-00001</td>
+                                <td>خروف</td>
+                                <td>كامل</td>
+                                <td>1</td>
+                                <td>250</td>
+                            </tr>
+                            <tr>
+                                <td>02/01/2023</td>
+                                <td>0509876543</td>
+                                <td>علي حسن</td>
+                                <td>ZAID-00002</td>
+                                <td>ماعز</td>
+                                <td>ثلاجة</td>
+                                <td>2</td>
+                                <td>600</td>
+                            </tr>
+                            <tr>
+                                <td>03/01/2023</td>
+                                <td>0561122334</td>
+                                <td>سالم عبدالله</td>
+                                <td>LIWA-00003</td>
+                                <td>جمل كبير</td>
+                                <td>عزيمة</td>
+                                <td>1</td>
+                                <td>1200</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="form-actions">
+                    <button id="export-customer-pdf" class="btn btn-warning">
+                        <i class="fas fa-file-pdf"></i> تصدير PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- شاشة التقرير المالي -->
+        <div id="financial-report-screen" class="screen">
+            <div class="screen-header">
+                <h2><i class="fas fa-chart-line"></i> التقرير المالي والإحصائي</h2>
+                <button id="back-to-dashboard3" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> العودة
+                </button>
+            </div>
+
+            <div class="report-container">
+                <div class="date-filter">
+                    <div class="form-group">
+                        <label for="finance-start-date">من تاريخ</label>
+                        <input type="date" id="finance-start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="finance-end-date">إلى تاريخ</label>
+                        <input type="date" id="finance-end-date">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button id="filter-finance-btn" class="btn">تصفية التقرير</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>نوع الذبيحة</th>
+                                <th>نوع التقطيع</th>
+                                <th>العدد</th>
+                                <th>اجمالي المبلغ (درهم)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="finance-report-body">
+                            <tr>
+                                <td>خروف</td>
+                                <td>كامل</td>
+                                <td>15</td>
+                                <td>3,750</td>
+                            </tr>
+                            <tr>
+                                <td>خروف</td>
+                                <td>ثلاجة</td>
+                                <td>8</td>
+                                <td>2,000</td>
+                            </tr>
+                            <tr>
+                                <td>ماعز</td>
+                                <td>كامل</td>
+                                <td>12</td>
+                                <td>3,600</td>
+                            </tr>
+                            <tr>
+                                <td>عجل صغير</td>
+                                <td>عزيمة</td>
+                                <td>5</td>
+                                <td>2,500</td>
+                            </tr>
+                            <tr>
+                                <td>بقر كبير</td>
+                                <td>ثلاجة</td>
+                                <td>3</td>
+                                <td>1,800</td>
+                            </tr>
+                            <tr>
+                                <td>جمل كبير</td>
+                                <td>كامل</td>
+                                <td>2</td>
+                                <td>2,400</td>
+                            </tr>
+                            <tr class="summary-row">
+                                <td colspan="2">المجموع الكلي</td>
+                                <td>45</td>
+                                <td>16,050</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="form-actions">
+                    <button id="export-finance-pdf" class="btn btn-warning">
+                        <i class="fas fa-file-pdf"></i> تصدير PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- شاشة الإعدادات -->
+        <div id="settings-screen" class="screen">
+            <div class="screen-header">
+                <h2><i class="fas fa-cog"></i> إعدادات النظام</h2>
+                <button id="back-to-dashboard4" class="btn btn-secondary">
+                    <i class="fas fa-home"></i> العودة
+                </button>
+            </div>
+
+            <div class="settings-grid">
+                <div class="settings-card">
+                    <h3>إدارة المستخدمين</h3>
+                    <div class="form-group">
+                        <label for="new-user-name">اسم المستخدم</label>
+                        <input type="text" id="new-user-name" placeholder="اسم المستخدم الجديد">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-user-id">الرقم الوظيفي</label>
+                        <input type="text" id="new-user-id" placeholder="الرقم الوظيفي">
+                    </div>
+                    <div class="form-group">
+                        <label for="user-role">الدور</label>
+                        <select id="user-role">
+                            <option value="admin">مدير</option>
+                            <option value="user">مستخدم عادي</option>
+                        </select>
+                    </div>
+                    <button id="add-user-btn" class="btn">إضافة مستخدم</button>
+                    
+                    <h4 style="margin-top: 20px;">قائمة المستخدمين</h4>
+                    <div class="user-list">
+                        <div class="list-item">
+                            <div>
+                                <strong>مسيب علي</strong><br>
+                                <small>70062 - مدير</small>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <strong>خالد محمد</strong><br>
+                                <small>70063 - مستخدم عادي</small>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>إعدادات النظام</h3>
+                    <div class="form-group">
+                        <label for="new-location">إضافة موقع جديد</label>
+                        <input type="text" id="new-location" placeholder="اسم الموقع">
+                    </div>
+                    <div class="form-group">
+                        <label for="invoice-prefix">بادئة الفاتورة</label>
+                        <input type="text" id="invoice-prefix" placeholder="مثل: GHSH">
+                    </div>
+                    <button id="add-location-btn" class="btn">إضافة موقع</button>
+                    
+                    <h4 style="margin-top: 20px;">المواقع الحالية</h4>
+                    <div class="location-list">
+                        <div class="list-item">
+                            <div>
+                                <strong>مسلخ مدينة غياثي</strong><br>
+                                <small>بادئة الفاتورة: GHSH</small>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <strong>مسلخ مدينة زايد</strong><br>
+                                <small>بادئة الفاتورة: ZAID</small>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>إعدادات الذبائح</h3>
+                    <div class="form-group">
+                        <label for="new-animal">إضافة نوع ذبيحة</label>
+                        <input type="text" id="new-animal" placeholder="نوع الذبيحة">
+                    </div>
+                    <div class="form-group">
+                        <label for="animal-price">السعر (درهم)</label>
+                        <input type="number" id="animal-price" min="0" step="0.01" placeholder="السعر">
+                    </div>
+                    <button id="add-animal-type-btn" class="btn">إضافة نوع</button>
+                    
+                    <h4 style="margin-top: 20px;">أنواع الذبائح</h4>
+                    <div class="animal-list">
+                        <div class="list-item">
+                            <div>
+                                <strong>خروف</strong><br>
+                                <small>السعر: 250 درهم</small>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <strong>ماعز</strong><br>
+                                <small>السعر: 300 درهم</small>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>إعدادات التقطيع</h3>
+                    <div class="form-group">
+                        <label for="new-cut">إضافة نوع تقطيع</label>
+                        <input type="text" id="new-cut" placeholder="نوع التقطيع">
+                    </div>
+                    <button id="add-cut-type-btn" class="btn">إضافة نوع</button>
+                    
+                    <h4 style="margin-top: 20px;">أنواع التقطيع</h4>
+                    <div class="cut-list">
+                        <div class="list-item">
+                            <div>
+                                <strong>كامل</strong>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <strong>ثلاجة</strong>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div>
+                                <strong>عزيمة</strong>
+                            </div>
+                            <div class="list-actions">
+                                <i class="fas fa-edit"></i>
+                                <i class="fas fa-trash"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <h3>تغيير صورة شاشة الترحيب</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <input type="file" id="welcome-image" accept="image/*">
+                    </div>
+                    <div class="form-group">
+                        <button id="update-image-btn" class="btn">تحديث الصورة</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== قاعدة البيانات المحلية =====
+        class Database {
+            constructor() {
+                this.initStorage();
+            }
+            
+            initStorage() {
+                if (!localStorage.getItem('slaughterhouse_users')) {
+                    localStorage.setItem('slaughterhouse_users', JSON.stringify([
+                        { id: '70062', name: 'مسيب علي', role: 'admin' },
+                        { id: '70063', name: 'خالد محمد', role: 'user' }
+                    ]));
+                }
+                
+                if (!localStorage.getItem('slaughterhouse_transactions')) {
+                    localStorage.setItem('slaughterhouse_transactions', JSON.stringify([]));
+                }
+                
+                if (!localStorage.getItem('slaughterhouse_locations')) {
+                    localStorage.setItem('slaughterhouse_locations', JSON.stringify([
+                        { id: 'ghayathi', name: 'مسلخ مدينة غياثي', prefix: 'GHSH', nextInvoice: 1 },
+                        { id: 'zaid', name: 'مسلخ مدينة زايد', prefix: 'ZAID', nextInvoice: 1 },
+                        { id: 'liwa', name: 'مسلخ مدينة ليوا', prefix: 'LIWA', nextInvoice: 1 }
+                    ]));
+                }
+                
+                if (!localStorage.getItem('slaughterhouse_animalTypes')) {
+                    localStorage.setItem('slaughterhouse_animalTypes', JSON.stringify([
+                        { id: 'sheep', name: 'خروف', price: 250 },
+                        { id: 'goat', name: 'ماعز', price: 300 },
+                        { id: 'calf', name: 'عجل صغير', price: 500 },
+                        { id: 'cow', name: 'بقر كبير', price: 600 },
+                        { id: 'young-camel', name: 'حوار صغير', price: 800 },
+                        { id: 'camel', name: 'جمل كبير', price: 1200 }
+                    ]));
+                }
+                
+                if (!localStorage.getItem('slaughterhouse_cutTypes')) {
+                    localStorage.setItem('slaughterhouse_cutTypes', JSON.stringify([
+                        { id: 'full', name: 'كامل' },
+                        { id: 'fridge', name: 'ثلاجة' },
+                        { id: 'party', name: 'عزيمة' }
+                    ]));
+                }
+                
+                if (!localStorage.getItem('slaughterhouse_settings')) {
+                    localStorage.setItem('slaughterhouse_settings', JSON.stringify({
+                        welcomeImage: 'https://cdn.pixabay.com/photo/2017/09/28/20/11/sheep-2796385_960_720.png'
+                    }));
+                }
+            }
+            
+            getUsers() {
+                return JSON.parse(localStorage.getItem('slaughterhouse_users'));
+            }
+            
+            getTransactions() {
+                return JSON.parse(localStorage.getItem('slaughterhouse_transactions'));
+            }
+            
+            getLocations() {
+                return JSON.parse(localStorage.getItem('slaughterhouse_locations'));
+            }
+            
+            getAnimalTypes() {
+                return JSON.parse(localStorage.getItem('slaughterhouse_animalTypes'));
+            }
+            
+            getCutTypes() {
+                return JSON.parse(localStorage.getItem('slaughterhouse_cutTypes'));
+            }
+            
+            getSettings() {
+                return JSON.parse(localStorage.getItem('slaughterhouse_settings'));
+            }
+            
+            saveUsers(users) {
+                localStorage.setItem('slaughterhouse_users', JSON.stringify(users));
+            }
+            
+            saveTransactions(transactions) {
+                localStorage.setItem('slaughterhouse_transactions', JSON.stringify(transactions));
+            }
+            
+            saveLocations(locations) {
+                localStorage.setItem('slaughterhouse_locations', JSON.stringify(locations));
+            }
+            
+            saveAnimalTypes(animalTypes) {
+                localStorage.setItem('slaughterhouse_animalTypes', JSON.stringify(animalTypes));
+            }
+            
+            saveCutTypes(cutTypes) {
+                localStorage.setItem('slaughterhouse_cutTypes', JSON.stringify(cutTypes));
+            }
+            
+            saveSettings(settings) {
+                localStorage.setItem('slaughterhouse_settings', JSON.stringify(settings));
+            }
+        }
+
+        // ===== التطبيق الرئيسي =====
+        class SlaughterhouseApp {
+            constructor() {
+                this.db = new Database();
+                this.currentUser = null;
+                this.init();
+            }
+            
+            init() {
+                // تهيئة التطبيق
+                this.updateDateTime();
+                setInterval(() => this.updateDateTime(), 60000);
+                
+                // شاشة الترحيب
+                setTimeout(() => {
+                    document.getElementById('welcome-screen').classList.remove('active');
+                    document.getElementById('login-screen').classList.add('active');
+                }, 2000);
+                
+                // تعبئة أرقام الاستيكر والذبائح
+                this.populateNumbers();
+                
+                // أحداث المستخدم
+                this.setupEventListeners();
+                
+                // تحديث واجهة الإعدادات
+                this.updateSettingsUI();
+            }
+            
+            updateDateTime() {
+                const now = new Date();
+                const options = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric'
+                };
+                
+                const dateStr = now.toLocaleDateString('ar-EG', options);
+                const timeStr = now.toLocaleTimeString('ar-EG');
+                
+                document.getElementById('current-date').textContent = dateStr;
+                document.getElementById('current-time').textContent = timeStr;
+                
+                // تحديث التاريخ في جميع الشاشات
+                document.querySelectorAll('#current-date').forEach(el => {
+                    el.textContent = dateStr;
+                });
+            }
+            
+            populateNumbers() {
+                const stickerSelect = document.getElementById('sticker-number');
+                const animalSelect = document.getElementById('animal-number');
+                
+                stickerSelect.innerHTML = '';
+                animalSelect.innerHTML = '';
+                
+                for (let i = 1; i <= 1000; i++) {
+                    const stickerOption = document.createElement('option');
+                    stickerOption.value = i;
+                    stickerOption.textContent = i;
+                    stickerSelect.appendChild(stickerOption);
+                    
+                    const animalOption = document.createElement('option');
+                    animalOption.value = i;
+                    animalOption.textContent = i;
+                    animalSelect.appendChild(animalOption);
+                }
+            }
+            
+            setupEventListeners() {
+                // تسجيل الدخول
+                document.getElementById('login-btn').addEventListener('click', () => this.login());
+                
+                // التنقل بين الشاشات
+                document.querySelectorAll('.dashboard-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const screenId = card.getAttribute('data-screen');
+                        this.showScreen(screenId);
+                    });
+                });
+                
+                // الأزرار العامة
+                document.getElementById('back-to-dashboard').addEventListener('click', () => this.showScreen('dashboard-screen'));
+                document.getElementById('back-to-dashboard2').addEventListener('click', () => this.showScreen('dashboard-screen'));
+                document.getElementById('back-to-dashboard3').addEventListener('click', () => this.showScreen('dashboard-screen'));
+                document.getElementById('back-to-dashboard4').addEventListener('click', () => this.showScreen('dashboard-screen'));
+                document.getElementById('logout-btn').addEventListener('click', () => this.logout());
+                
+                // شاشة إدخال البيانات
+                document.getElementById('quantity').addEventListener('input', () => this.calculateTotal());
+                document.getElementById('price').addEventListener('input', () => this.calculateTotal());
+                document.getElementById('animal-type').addEventListener('change', () => this.updatePrice());
+                document.getElementById('add-animal-btn').addEventListener('click', () => this.addAnimal());
+                document.getElementById('print-invoice-btn').addEventListener('click', () => this.printInvoice());
+                document.getElementById('print-sticker-btn').addEventListener('click', () => this.printSticker());
+                document.getElementById('customer-report-btn').addEventListener('click', () => this.showScreen('customer-report-screen'));
+                
+                // شاشة الإعدادات
+                document.getElementById('add-user-btn').addEventListener('click', () => this.addUser());
+                document.getElementById('add-location-btn').addEventListener('click', () => this.addLocation());
+                document.getElementById('add-animal-type-btn').addEventListener('click', () => this.addAnimalType());
+                document.getElementById('add-cut-type-btn').addEventListener('click', () => this.addCutType());
+                document.getElementById('update-image-btn').addEventListener('click', () => this.updateWelcomeImage());
+                
+                // التقارير
+                document.getElementById('export-customer-pdf').addEventListener('click', () => this.exportPDF('customer'));
+                document.getElementById('export-finance-pdf').addEventListener('click', () => this.exportPDF('finance'));
+                document.getElementById('filter-report-btn').addEventListener('click', () => this.filterReport());
+                document.getElementById('filter-finance-btn').addEventListener('click', () => this.filterFinanceReport());
+            }
+            
+            login() {
+                const employeeId = document.getElementById('employee-id').value;
+                const employeeName = document.getElementById('employee-name').value;
+                const users = this.db.getUsers();
+                
+                const user = users.find(u => u.id === employeeId && u.name === employeeName);
+                
+                if (user) {
+                    this.currentUser = user;
+                    this.showScreen('dashboard-screen');
+                    
+                    // تحديث معلومات المستخدم
+                    document.querySelector('.user-info span').textContent = `${user.name} - ${user.role === 'admin' ? 'مدير النظام' : 'مستخدم'}`;
+                } else {
+                    alert('الرقم الوظيفي أو اسم المستخدم غير صحيح');
+                }
+            }
+            
+            logout() {
+                this.currentUser = null;
+                document.getElementById('dashboard-screen').classList.remove('active');
+                document.getElementById('login-screen').classList.add('active');
+                
+                // إعادة تعيين حقول تسجيل الدخول
+                document.getElementById('employee-id').value = '';
+                document.getElementById('employee-name').value = '';
+            }
+            
+            showScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(screenId).classList.add('active');
+                
+                // إذا كانت شاشة الإعدادات، تحديث البيانات
+                if (screenId === 'settings-screen') {
+                    this.updateSettingsUI();
+                }
+            }
+            
+            updatePrice() {
+                const animalType = document.getElementById('animal-type').value;
+                const animalTypes = this.db.getAnimalTypes();
+                const animal = animalTypes.find(a => a.id === animalType);
+                
+                if (animal) {
+                    document.getElementById('price').value = animal.price;
+                    this.calculateTotal();
+                }
+            }
+            
+            calculateTotal() {
+                const quantity = parseInt(document.getElementById('quantity').value) || 0;
+                const price = parseFloat(document.getElementById('price').value) || 0;
+                const total = quantity * price;
+                document.getElementById('total').value = total.toFixed(2);
+            }
+            
+            addAnimal() {
+                // جمع بيانات الذبيحة
+                const transaction = {
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    location: document.getElementById('location').value,
+                    phone: document.getElementById('phone').value,
+                    customer: document.getElementById('customer-name').value,
+                    invoice: document.getElementById('invoice-number').value,
+                    sticker: document.getElementById('sticker-number').value,
+                    animal: document.getElementById('animal-number').value,
+                    animalType: document.getElementById('animal-type').value,
+                    cutType: document.getElementById('cut-type').value,
+                    quantity: parseInt(document.getElementById('quantity').value),
+                    price: parseFloat(document.getElementById('price').value),
+                    total: parseFloat(document.getElementById('total').value),
+                    payment: document.querySelector('input[name="payment"]:checked').value,
+                    extras: Array.from(document.querySelectorAll('input[name="extras"]:checked')).map(cb => cb.value),
+                    user: this.currentUser.name
+                };
+                
+                // حفظ المعاملة
+                const transactions = this.db.getTransactions();
+                transactions.push(transaction);
+                this.db.saveTransactions(transactions);
+                
+                alert('تمت إضافة الذبيحة بنجاح');
+                this.resetForm();
+            }
+            
+            resetForm() {
+                document.getElementById('phone').value = '';
+                document.getElementById('customer-name').value = '';
+                document.getElementById('quantity').value = '1';
+                document.getElementById('animal-type').selectedIndex = 0;
+                document.getElementById('cut-type').selectedIndex = 0;
+                document.querySelector('input[name="payment"][value="cash"]').checked = true;
+                document.querySelectorAll('input[name="extras"]').forEach(cb => cb.checked = false);
+                
+                this.updatePrice();
+            }
+            
+            printInvoice() {
+                // تعبئة بيانات الفاتورة
+                const locationSelect = document.getElementById('location');
+                const locationText = locationSelect.options[locationSelect.selectedIndex].text;
+                
+                const animalTypeSelect = document.getElementById('animal-type');
+                const animalType = this.db.getAnimalTypes().find(a => a.id === animalTypeSelect.value);
+                const animalTypeText = animalType ? animalType.name : '';
+                
+                const cutTypeSelect = document.getElementById('cut-type');
+                const cutType = this.db.getCutTypes().find(c => c.id === cutTypeSelect.value);
+                const cutTypeText = cutType ? cutType.name : '';
+                
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('ar-EG');
+                
+                document.getElementById('invoice-location').textContent = locationText;
+                document.getElementById('inv-number').textContent = document.getElementById('invoice-number').value;
+                document.getElementById('inv-animal').textContent = document.getElementById('animal-number').value;
+                document.getElementById('inv-sticker').textContent = document.getElementById('sticker-number').value;
+                document.getElementById('inv-type').textContent = animalTypeText;
+                document.getElementById('inv-cut').textContent = cutTypeText;
+                document.getElementById('inv-quantity').textContent = document.getElementById('quantity').value;
+                document.getElementById('inv-price').textContent = document.getElementById('price').value;
+                document.getElementById('inv-total').textContent = document.getElementById('total').value;
+                document.getElementById('invoice-date').textContent = `التاريخ: ${dateStr}`;
+                
+                // إظهار الفاتورة
+                const invoice = document.getElementById('invoice-template');
+                invoice.style.display = 'block';
+                
+                // طباعة الفاتورة باستخدام jsPDF
+                setTimeout(() => {
+                    html2canvas(invoice).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+                        const imgWidth = 210;
+                        const pageHeight = 297;
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        let heightLeft = imgHeight;
+                        let position = 0;
+                        
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                        
+                        while (heightLeft >= 0) {
+                            position = heightLeft - imgHeight;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                            heightLeft -= pageHeight;
+                        }
+                        
+                        pdf.save(`فاتورة_${document.getElementById('invoice-number').value}.pdf`);
+                    });
+                    
+                    // إخفاء الفاتورة بعد الطباعة
+                    invoice.style.display = 'none';
+                }, 500);
+            }
+            
+            printSticker() {
+                // تعبئة بيانات الاستيكر
+                const locationSelect = document.getElementById('location');
+                const locationText = locationSelect.options[locationSelect.selectedIndex].text;
+                
+                const animalTypeSelect = document.getElementById('animal-type');
+                const animalType = this.db.getAnimalTypes().find(a => a.id === animalTypeSelect.value);
+                const animalTypeText = animalType ? animalType.name : '';
+                
+                const cutTypeSelect = document.getElementById('cut-type');
+                const cutType = this.db.getCutTypes().find(c => c.id === cutTypeSelect.value);
+                const cutTypeText = cutType ? cutType.name : '';
+                
+                const today = new Date();
+                const productionDate = this.formatDate(today);
+                
+                // حساب تاريخ الانتهاء (14 يوم للخروف والماعز، 21 يوم للباقي)
+                const expirationDate = new Date(today);
+                if (animalTypeSelect.value === 'sheep' || animalTypeSelect.value === 'goat') {
+                    expirationDate.setDate(today.getDate() + 14);
+                } else {
+                    expirationDate.setDate(today.getDate() + 21);
+                }
+                
+                document.getElementById('sticker-location').textContent = locationText;
+                document.getElementById('sticker-type').textContent = animalTypeText;
+                document.getElementById('sticker-cut').textContent = cutTypeText;
+                document.getElementById('sticker-prod').textContent = productionDate;
+                document.getElementById('sticker-exp').textContent = this.formatDate(expirationDate);
+                
+                // إظهار الاستيكر
+                const sticker = document.getElementById('sticker-template');
+                sticker.style.display = 'block';
+                
+                // طباعة الاستيكر باستخدام jsPDF
+                setTimeout(() => {
+                    html2canvas(sticker).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const pdf = new jspdf.jsPDF('p', 'mm', [80, 120]);
+                        
+                        const imgWidth = 80;
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                        
+                        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                        pdf.save(`استيكر_${document.getElementById('animal-number').value}.pdf`);
+                    });
+                    
+                    // إخفاء الاستيكر بعد الطباعة
+                    sticker.style.display = 'none';
+                }, 500);
+            }
+            
+            formatDate(date) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            
+            addUser() {
+                const name = document.getElementById('new-user-name').value;
+                const id = document.getElementById('new-user-id').value;
+                const role = document.getElementById('user-role').value;
+                
+                if (name && id) {
+                    const users = this.db.getUsers();
+                    users.push({ id, name, role });
+                    this.db.saveUsers(users);
+                    
+                    alert(`تم إضافة المستخدم ${name} بنجاح`);
+                    document.getElementById('new-user-name').value = '';
+                    document.getElementById('new-user-id').value = '';
+                    
+                    this.updateSettingsUI();
+                } else {
+                    alert('يرجى إدخال اسم المستخدم والرقم الوظيفي');
+                }
+            }
+            
+            addLocation() {
+                const name = document.getElementById('new-location').value;
+                const prefix = document.getElementById('invoice-prefix').value;
+                
+                if (name && prefix) {
+                    const locations = this.db.getLocations();
+                    locations.push({ 
+                        id: name.replace(/\s+/g, '-').toLowerCase(), 
+                        name, 
+                        prefix, 
+                        nextInvoice: 1 
+                    });
+                    this.db.saveLocations(locations);
+                    
+                    alert(`تم إضافة الموقع ${name} بنجاح`);
+                    document.getElementById('new-location').value = '';
+                    document.getElementById('invoice-prefix').value = '';
+                    
+                    this.updateSettingsUI();
+                } else {
+                    alert('يرجى إدخال اسم الموقع وبادئة الفاتورة');
+                }
+            }
+            
+            addAnimalType() {
+                const name = document.getElementById('new-animal').value;
+                const price = document.getElementById('animal-price').value;
+                
+                if (name && price) {
+                    const animalTypes = this.db.getAnimalTypes();
+                    animalTypes.push({ 
+                        id: name.replace(/\s+/g, '-').toLowerCase(), 
+                        name, 
+                        price: parseFloat(price) 
+                    });
+                    this.db.saveAnimalTypes(animalTypes);
+                    
+                    alert(`تم إضافة نوع الذبيحة ${name} بنجاح`);
+                    document.getElementById('new-animal').value = '';
+                    document.getElementById('animal-price').value = '';
+                    
+                    this.updateSettingsUI();
+                } else {
+                    alert('يرجى إدخال اسم الذبيحة والسعر');
+                }
+            }
+            
+            addCutType() {
+                const name = document.getElementById('new-cut').value;
+                
+                if (name) {
+                    const cutTypes = this.db.getCutTypes();
+                    cutTypes.push({ 
+                        id: name.replace(/\s+/g, '-').toLowerCase(), 
+                        name 
+                    });
+                    this.db.saveCutTypes(cutTypes);
+                    
+                    alert(`تم إضافة نوع التقطيع ${name} بنجاح`);
+                    document.getElementById('new-cut').value = '';
+                    
+                    this.updateSettingsUI();
+                } else {
+                    alert('يرجى إدخال اسم نوع التقطيع');
+                }
+            }
+            
+            updateWelcomeImage() {
+                const fileInput = document.getElementById('welcome-image');
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = (e) => {
+                        document.querySelector('.welcome-content img').src = e.target.result;
+                        
+                        // حفظ الصورة في الإعدادات
+                        const settings = this.db.getSettings();
+                        settings.welcomeImage = e.target.result;
+                        this.db.saveSettings(settings);
+                        
+                        alert('تم تحديث صورة شاشة الترحيب بنجاح');
+                    };
+                    
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('يرجى اختيار صورة جديدة');
+                }
+            }
+            
+            updateSettingsUI() {
+                // تحديث قوائم الإعدادات
+                this.updateList('user-list', this.db.getUsers(), (user) => 
+                    `<strong>${user.name}</strong><br><small>${user.id} - ${user.role === 'admin' ? 'مدير' : 'مستخدم عادي'}</small>`
+                );
+                
+                this.updateList('location-list', this.db.getLocations(), (location) => 
+                    `<strong>${location.name}</strong><br><small>بادئة الفاتورة: ${location.prefix}</small>`
+                );
+                
+                this.updateList('animal-list', this.db.getAnimalTypes(), (animal) => 
+                    `<strong>${animal.name}</strong><br><small>السعر: ${animal.price} درهم</small>`
+                );
+                
+                this.updateList('cut-list', this.db.getCutTypes(), (cut) => 
+                    `<strong>${cut.name}</strong>`
+                );
+            }
+            
+            updateList(listId, items, contentFn) {
+                const listElement = document.querySelector(`.${listId}`);
+                listElement.innerHTML = '';
+                
+                items.forEach(item => {
+                    const listItem = document.createElement('div');
+                    listItem.className = 'list-item';
+                    listItem.innerHTML = `
+                        <div>${contentFn(item)}</div>
+                        <div class="list-actions">
+                            <i class="fas fa-edit"></i>
+                            <i class="fas fa-trash"></i>
+                        </div>
+                    `;
+                    listElement.appendChild(listItem);
+                });
+            }
+            
+            exportPDF(type) {
+                let element;
+                let filename;
+                
+                if (type === 'customer') {
+                    element = document.querySelector('.report-container');
+                    filename = 'تقرير_المتعاملين.pdf';
+                } else {
+                    element = document.querySelector('.report-container');
+                    filename = 'التقرير_المالي.pdf';
+                }
+                
+                html2canvas(element).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    
+                    pdf.save(filename);
+                });
+            }
+            
+            filterReport() {
+                // في تطبيق حقيقي، سيتم تنفيذ الفلترة هنا
+                alert('تم تطبيق الفلترة على التقرير');
+            }
+            
+            filterFinanceReport() {
+                // في تطبيق حقيقي، سيتم تنفيذ الفلترة هنا
+                alert('تم تطبيق الفلترة على التقرير المالي');
+            }
+        }
+
+        // بدء تشغيل التطبيق عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new SlaughterhouseApp();
+        });
+    </script>
+</body>
+</html>
